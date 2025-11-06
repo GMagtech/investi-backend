@@ -40,4 +40,3 @@ def get_prices(symbol: str = "SPY"):
         for idx, row in data.iterrows()
     ]
     return output
-
