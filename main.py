@@ -1,20 +1,32 @@
-﻿@app.post("/ingest/prices")
-def ingest_prices(symbol: str = Body(...)):
-    import yfinance as yf
+﻿from fastapi import FastAPI
+import yfinance as yf
+from datetime import datetime
 
-    data = yf.download(symbol, period="2mo")["Close"]
+app = FastAPI()
 
-    # Remove old records for this symbol
-    cur.execute("DELETE FROM prices WHERE symbol=?", (symbol,))
+@app.get("/")
+def root():
+    return {"ok": True}
 
-    RESULT = []
-    for date, close in data.items():
-        day = date.strftime("%Y-%m-%d")
-        cur.execute(
-            "INSERT INTO prices(symbol, date, close) VALUES (?,?,?)",
-            (symbol, day, float(close))
-        )
-        RESULT.append({"date": day, "close": float(close)})
+@app.post("/ingest/prices")
+def ingest_prices(symbol: str = "SPY", period: str = "1mo"):
+    data = yf.download(symbol, period=period)
+    prices = []
+    for idx, row in data.iterrows():
+        prices.append({
+            "date": idx.strftime("%Y-%m-%d"),
+            "close": float(row["Close"])
+        })
+    return {"count": len(prices), "data": prices}
 
-    conn.commit()
-    return {"ok": True, "rows": len(RESULT)}
+@app.get("/prices")
+def get_prices(symbol: str = "SPY", period: str = "1mo"):
+    data = yf.download(symbol, period=period)
+    prices = []
+    for idx, row in data.iterrows():
+        prices.append({
+            "date": idx.strftime("%Y-%m-%d"),
+            "close": float(row["Close"])
+        })
+    return prices
+
